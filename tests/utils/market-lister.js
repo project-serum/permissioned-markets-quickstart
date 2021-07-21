@@ -7,8 +7,7 @@ const {
   SystemProgram,
 } = require("@project-serum/anchor").web3;
 const { TOKEN_PROGRAM_ID } = require("@solana/spl-token");
-const serum = require("/home/armaniferrante/Documents/code/src/github.com/project-serum/serum-ts/packages/serum");
-// const serum = require("@project-serum/serum");
+const serum = require("@project-serum/serum");
 const {
   DexInstructions,
   TokenInstructions,

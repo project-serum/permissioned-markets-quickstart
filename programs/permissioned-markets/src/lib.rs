@@ -169,7 +169,7 @@ fn verify_and_strip_auth(ctx: &mut Context) -> ProgramResult {
 fn verify_revoked_and_strip_auth(ctx: &mut Context) -> ProgramResult {
     // The rent sysvar is used as a dummy example of an identity token.
     let auth = &ctx.accounts[0];
-    require!(auth.key != &rent::ID, InvalidAuth);
+    require!(auth.key != &rent::ID, TokenNotRevoked);
 
     // Strip off the account before possing on the message.
     ctx.accounts = (&ctx.accounts[1..]).to_vec();
@@ -221,6 +221,8 @@ macro_rules! prune_authority {
 pub enum ErrorCode {
     #[msg("Invalid auth token provided")]
     InvalidAuth,
+    #[msg("Auth token not revoked")]
+    TokenNotRevoked,
 }
 
 // Constants.

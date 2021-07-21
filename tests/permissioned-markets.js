@@ -1,8 +1,7 @@
 const assert = require("assert");
 const { Token, TOKEN_PROGRAM_ID } = require("@solana/spl-token");
 const anchor = require("@project-serum/anchor");
-//const serum = require("@project-serum/serum");
-const serum = require("/home/armaniferrante/Documents/code/src/github.com/project-serum/serum-ts/packages/serum");
+const serum = require("@project-serum/serum");
 const { BN } = anchor;
 const {
   Keypair,
@@ -165,11 +164,6 @@ describe("permissioned-markets", () => {
     assert.ok(afterOoAccount.quoteTokenTotal.eq(usdcPosted));
   });
 
-  // Need to crank the cancel so that we can close later.
-  it("Cranks the cancel transaction", async () => {
-    crankEventQueue(provider, marketProxy);
-  });
-
   it("Settles funds on the orderbook", async () => {
     // Given.
     const beforeTokenAccount = await usdcClient.getAccountInfo(usdcAccount);
@@ -195,55 +189,96 @@ describe("permissioned-markets", () => {
     );
   });
 
-  it("Posts several bids and asks on the orderbook", async () => {
-    const size = 1;
-    const price = 1;
-    usdcPosted = new BN(
-      marketProxy.market._decoded.quoteLotSize.toNumber()
-    ).mul(
-      marketProxy.market
-        .baseSizeNumberToLots(size)
-        .mul(marketProxy.market.priceNumberToLots(price))
+  // Need to crank the cancel so that we can close later.
+  it("Cranks the cancel transaction", async () => {
+    await crankEventQueue(provider, marketProxy);
+  });
+
+  it("Closes an open orders account", async () => {
+    // Given.
+    const beforeAccount = await program.provider.connection.getAccountInfo(
+      program.provider.wallet.publicKey
     );
 
+    // When.
     const tx = new Transaction();
     tx.add(
-      marketProxy.instruction.newOrderV3({
-        owner: program.provider.wallet.publicKey,
-        payer: usdcAccount,
-        side: "buy",
-        price,
-        size,
-        orderType: "postOnly",
-        clientId: new BN(999),
-        openOrdersAddressKey: openOrders,
-        selfTradeBehavior: "abortTransaction",
-      })
+      marketProxy.instruction.closeOpenOrders(
+        openOrders,
+        provider.wallet.publicKey,
+        provider.wallet.publicKey
+      )
     );
     await provider.send(tx);
 
-    const sizeAsk = 1;
-    const priceAsk = 1.1;
-    const txAsk = new Transaction();
-    txAsk.add(
-      marketProxy.instruction.newOrderV3({
-        owner: program.provider.wallet.publicKey,
-        payer: tokenAccount,
-        side: "sell",
-        price: priceAsk,
-        size: sizeAsk,
-        orderType: "postOnly",
-        clientId: new BN(1000),
-        openOrdersAddressKey: openOrders,
-        selfTradeBehavior: "abortTransaction",
-      })
+    // Then.
+    const afterAccount = await program.provider.connection.getAccountInfo(
+      program.provider.wallet.publicKey
     );
-    await provider.send(txAsk);
+    const closedAccount = await program.provider.connection.getAccountInfo(
+      openOrders
+    );
+    assert.ok(23352768 === afterAccount.lamports - beforeAccount.lamports);
+    assert.ok(closedAccount === null);
   });
 
-  // Need to crank the cancel so that we can close later.
-  it("Cranks the prune transaction", async () => {
-    crankEventQueue(provider, marketProxy);
+  it("Re-opens an open orders account", async () => {
+    const tx = new Transaction();
+    tx.add(
+      await marketProxy.instruction.initOpenOrders(
+        program.provider.wallet.publicKey,
+        marketProxy.market.address,
+        marketProxy.market.address, // Dummy. Replaced by middleware.
+        marketProxy.market.address // Dummy. Replaced by middleware.
+      )
+    );
+    await provider.send(tx);
+
+    const account = await provider.connection.getAccountInfo(openOrders);
+    assert.ok(account.owner.toString() === DEX_PID.toString());
+  });
+
+  it("Posts several bids and asks on the orderbook", async () => {
+    const size = 10;
+    const price = 2;
+    for (let k = 0; k < 10; k += 1) {
+      const tx = new Transaction();
+      tx.add(
+        marketProxy.instruction.newOrderV3({
+          owner: program.provider.wallet.publicKey,
+          payer: usdcAccount,
+          side: "buy",
+          price,
+          size,
+          orderType: "postOnly",
+          clientId: new BN(999),
+          openOrdersAddressKey: openOrders,
+          selfTradeBehavior: "abortTransaction",
+        })
+      );
+      await provider.send(tx);
+    }
+
+    const sizeAsk = 10;
+    const priceAsk = 10;
+
+    for (let k = 0; k < 10; k += 1) {
+      const txAsk = new Transaction();
+      txAsk.add(
+        marketProxy.instruction.newOrderV3({
+          owner: program.provider.wallet.publicKey,
+          payer: tokenAccount,
+          side: "sell",
+          price: priceAsk,
+          size: sizeAsk,
+          orderType: "postOnly",
+          clientId: new BN(1000),
+          openOrdersAddressKey: openOrders,
+          selfTradeBehavior: "abortTransaction",
+        })
+      );
+      await provider.send(txAsk);
+    }
   });
 
   it("Prunes the orderbook", async () => {
@@ -252,6 +287,24 @@ describe("permissioned-markets", () => {
       marketProxy.instruction.prune(openOrders, provider.wallet.publicKey)
     );
     await provider.send(tx);
+  });
+
+  it("Settles the account", async () => {
+    const tx = new Transaction();
+    tx.add(
+      await marketProxy.instruction.settleFunds(
+        openOrders,
+        provider.wallet.publicKey,
+        tokenAccount,
+        usdcAccount,
+        referral
+      )
+    );
+    await provider.send(tx);
+  });
+
+  it("Cranks the prune transaction", async () => {
+    await crankEventQueue(provider, marketProxy);
   });
 
   it("Closes an open orders account", async () => {
