@@ -1,7 +1,8 @@
 const assert = require("assert");
 const { Token, TOKEN_PROGRAM_ID } = require("@solana/spl-token");
 const anchor = require("@project-serum/anchor");
-const serum = require("@project-serum/serum");
+//const serum = require("@project-serum/serum");
+const serum = require("/home/armaniferrante/Documents/code/src/github.com/project-serum/serum-ts/packages/serum");
 const { BN } = anchor;
 const {
   Keypair,
@@ -166,17 +167,7 @@ describe("permissioned-markets", () => {
 
   // Need to crank the cancel so that we can close later.
   it("Cranks the cancel transaction", async () => {
-    // TODO: can do this in a single transaction if we covert the pubkey bytes
-    //       into a [u64; 4] array and sort. I'm lazy though.
-    let eq = await marketProxy.market.loadEventQueue(provider.connection);
-    while (eq.length > 0) {
-      const tx = new Transaction();
-      tx.add(
-        marketProxy.market.makeConsumeEventsInstruction([eq[0].openOrders], 1)
-      );
-      await provider.send(tx);
-      eq = await marketProxy.market.loadEventQueue(provider.connection);
-    }
+    crankEventQueue(provider, marketProxy);
   });
 
   it("Settles funds on the orderbook", async () => {
@@ -202,6 +193,65 @@ describe("permissioned-markets", () => {
       afterTokenAccount.amount.sub(beforeTokenAccount.amount).toNumber() ===
         usdcPosted.toNumber()
     );
+  });
+
+  it("Posts several bids and asks on the orderbook", async () => {
+    const size = 1;
+    const price = 1;
+    usdcPosted = new BN(
+      marketProxy.market._decoded.quoteLotSize.toNumber()
+    ).mul(
+      marketProxy.market
+        .baseSizeNumberToLots(size)
+        .mul(marketProxy.market.priceNumberToLots(price))
+    );
+
+    const tx = new Transaction();
+    tx.add(
+      marketProxy.instruction.newOrderV3({
+        owner: program.provider.wallet.publicKey,
+        payer: usdcAccount,
+        side: "buy",
+        price,
+        size,
+        orderType: "postOnly",
+        clientId: new BN(999),
+        openOrdersAddressKey: openOrders,
+        selfTradeBehavior: "abortTransaction",
+      })
+    );
+    await provider.send(tx);
+
+    const sizeAsk = 1;
+    const priceAsk = 1.1;
+    const txAsk = new Transaction();
+    txAsk.add(
+      marketProxy.instruction.newOrderV3({
+        owner: program.provider.wallet.publicKey,
+        payer: tokenAccount,
+        side: "sell",
+        price: priceAsk,
+        size: sizeAsk,
+        orderType: "postOnly",
+        clientId: new BN(1000),
+        openOrdersAddressKey: openOrders,
+        selfTradeBehavior: "abortTransaction",
+      })
+    );
+    await provider.send(txAsk);
+  });
+
+  // Need to crank the cancel so that we can close later.
+  it("Cranks the prune transaction", async () => {
+    crankEventQueue(provider, marketProxy);
+  });
+
+  it("Prunes the orderbook", async () => {
+    const tx = new Transaction();
+    tx.add(
+      marketProxy.instruction.prune(openOrders, provider.wallet.publicKey)
+    );
+    await provider.send(tx);
   });
 
   it("Closes an open orders account", async () => {
@@ -232,3 +282,17 @@ describe("permissioned-markets", () => {
     assert.ok(closedAccount === null);
   });
 });
+
+async function crankEventQueue(provider, marketProxy) {
+  // TODO: can do this in a single transaction if we covert the pubkey bytes
+  //       into a [u64; 4] array and sort. I'm lazy though.
+  let eq = await marketProxy.market.loadEventQueue(provider.connection);
+  while (eq.length > 0) {
+    const tx = new Transaction();
+    tx.add(
+      marketProxy.market.makeConsumeEventsInstruction([eq[0].openOrders], 1)
+    );
+    await provider.send(tx);
+    eq = await marketProxy.market.loadEventQueue(provider.connection);
+  }
+}

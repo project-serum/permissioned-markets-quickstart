@@ -1,4 +1,9 @@
-const { SYSVAR_RENT_PUBKEY } = require("@solana/web3.js");
+const anchor = require("@project-serum/anchor");
+const {
+  PublicKey,
+  SYSVAR_RENT_PUBKEY,
+  SYSVAR_CLOCK_PUBKEY,
+} = require("@solana/web3.js");
 const {
   OpenOrders,
   OpenOrdersPda,
@@ -51,14 +56,35 @@ class Identity {
   closeOpenOrders(ix) {
     this.proxy(ix);
   }
+  prune(ix) {
+    this.proxyRevoked(ix);
+  }
   proxy(ix) {
     ix.keys = [
       { pubkey: SYSVAR_RENT_PUBKEY, isWritable: false, isSigner: false },
       ...ix.keys,
     ];
   }
+  proxyRevoked(ix) {
+    ix.keys = [
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isWritable: false, isSigner: false },
+      ...ix.keys,
+    ];
+  }
+  static async pruneAuthority(market, dexProgramId, proxyProgramId) {
+    const [addr] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode("prune"),
+        dexProgramId.toBuffer(),
+        market.toBuffer(),
+      ],
+      proxyProgramId
+    );
+    return addr;
+  }
 }
 
 module.exports = {
   load,
+  Identity,
 };
