@@ -68,6 +68,14 @@ pub mod permissioned_markets {
 /// The identity token must be given as the fist account.
 struct Identity;
 
+impl Identity {
+    fn prepare_pda<'info>(acc_info: &AccountInfo<'info>) -> AccountInfo<'info> {
+        let mut acc_info = acc_info.clone();
+        acc_info.is_signer = true;
+        acc_info
+    }
+}
+
 impl MarketMiddleware for Identity {
     /// Accounts:
     ///
@@ -119,6 +127,25 @@ impl MarketMiddleware for Identity {
 
     /// Accounts:
     ///
+    /// 0. Authorization token (revoked).
+    /// ..
+    fn prune(&self, ctx: &mut Context) -> ProgramResult {
+        verify_revoked_and_strip_auth(ctx)?;
+
+        // Sign with the prune authority.
+        let market = &ctx.accounts[0];
+        ctx.seeds.push(prune_authority! {
+            program = ctx.program_id,
+            dex_program = ctx.dex_program_id,
+            market = market.key
+        });
+
+        ctx.accounts[3] = Self::prepare_pda(&ctx.accounts[3]);
+        Ok(())
+    }
+
+    /// Accounts:
+    ///
     /// 0. Authorization token.
     /// ..
     fn fallback(&self, ctx: &mut Context) -> ProgramResult {
@@ -139,12 +166,63 @@ fn verify_and_strip_auth(ctx: &mut Context) -> ProgramResult {
     Ok(())
 }
 
+fn verify_revoked_and_strip_auth(ctx: &mut Context) -> ProgramResult {
+    // The rent sysvar is used as a dummy example of an identity token.
+    let auth = &ctx.accounts[0];
+    require!(auth.key != &rent::ID, TokenNotRevoked);
+
+    // Strip off the account before possing on the message.
+    ctx.accounts = (&ctx.accounts[1..]).to_vec();
+
+    Ok(())
+}
+
+// Macros.
+
+/// Returns the seeds used for the prune authority.
+#[macro_export]
+macro_rules! prune_authority {
+    (
+        program = $program:expr,
+        dex_program = $dex_program:expr,
+        market = $market:expr,
+        bump = $bump:expr
+    ) => {
+        vec![
+            b"prune".to_vec(),
+            $dex_program.as_ref().to_vec(),
+            $market.as_ref().to_vec(),
+            vec![$bump],
+        ]
+    };
+    (
+        program = $program:expr,
+        dex_program = $dex_program:expr,
+        market = $market:expr
+    ) => {
+        vec![
+            b"prune".to_vec(),
+            $dex_program.as_ref().to_vec(),
+            $market.as_ref().to_vec(),
+            vec![
+                Pubkey::find_program_address(
+                    &[b"prune".as_ref(), $dex_program.as_ref(), $market.as_ref()],
+                    $program,
+                )
+                .1,
+            ],
+        ]
+    };
+}
+
 // Error.
 
 #[error]
 pub enum ErrorCode {
     #[msg("Invalid auth token provided")]
     InvalidAuth,
+    #[msg("Auth token not revoked")]
+    TokenNotRevoked,
 }
 
 // Constants.

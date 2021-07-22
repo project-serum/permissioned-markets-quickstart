@@ -7,12 +7,14 @@ const {
   SystemProgram,
 } = require("@project-serum/anchor").web3;
 const { TOKEN_PROGRAM_ID } = require("@solana/spl-token");
+const serum = require("@project-serum/serum");
 const {
   DexInstructions,
   TokenInstructions,
   OpenOrdersPda,
   MARKET_STATE_LAYOUT_V3,
-} = require("@project-serum/serum");
+} = serum;
+const { Identity } = require("./market-proxy");
 const { DEX_PID } = require("./common");
 
 // Creates a market on the dex.
@@ -125,6 +127,11 @@ async function list({
       quoteDustThreshold,
       programId: dexProgramId,
       authority: await OpenOrdersPda.marketAuthority(
+        market.publicKey,
+        DEX_PID,
+        proxyProgramId
+      ),
+      pruneAuthority: await Identity.pruneAuthority(
         market.publicKey,
         DEX_PID,
         proxyProgramId
