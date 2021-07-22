@@ -15,8 +15,6 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-#anchor-lang = { git = "https://github.com/project-serum/anchor" }
-#anchor-spl = { git = "https://github.com/project-serum/anchor" }
-anchor-lang = { path = "../../../anchor/lang" }
-anchor-spl = { path = "../../../anchor/spl" }
+anchor-lang = { git = "https://github.com/project-serum/anchor" }
+anchor-spl = { git = "https://github.com/project-serum/anchor" }
 solana-program = "1.7.4"
