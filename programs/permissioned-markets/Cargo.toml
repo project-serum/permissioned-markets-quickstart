@@ -17,4 +17,4 @@ default = []
 [dependencies]
 anchor-lang = { git = "https://github.com/project-serum/anchor" }
 anchor-spl = { git = "https://github.com/project-serum/anchor" }
-solana-program = "1.7.4"
+solana-program = "=1.7.8"
