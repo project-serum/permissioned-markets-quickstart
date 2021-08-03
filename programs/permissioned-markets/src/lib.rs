@@ -129,7 +129,7 @@ impl MarketMiddleware for Identity {
     ///
     /// 0. Authorization token (revoked).
     /// ..
-    fn prune(&self, ctx: &mut Context) -> ProgramResult {
+    fn prune(&self, ctx: &mut Context, _limit: u16) -> ProgramResult {
         verify_revoked_and_strip_auth(ctx)?;
 
         // Sign with the prune authority.
