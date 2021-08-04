@@ -30,15 +30,24 @@ git submodule init
 git submodule update
 ```
 
-### Build
+### Install Dependencies
 
 [Anchor](https://github.com/project-serum/anchor) is used for developoment, and it's
 recommended workflow is used here. To get started, see the [guide](https://project-serum.github.io/anchor/getting-started/introduction.html).
 
-Verify the installation with `anchor -h` and build the dex.
+To install Anchor and all local dependencies, run
 
 ```
-make build-dex
+yarn
+```
+
+### Build
+
+To build, run
+
+
+```
+yarn build
 ```
 
 ### Test
@@ -47,7 +56,7 @@ A set of integration tests are provided. See these for an example of how to use 
 permissioned market from JavaScript.
 
 ```bash
-make test
+yarn test
 ```
 
 ### Localnet
@@ -56,13 +65,13 @@ To start a localnetwork with both the dex and proxy deployed and an orderbook
 listed with posted orders, first install the "crank" cli.
 
 ```
-cargo install --git https://github.com/project-serum/serum-dex --branch armani/auth crank --locked
+cargo install --git https://github.com/project-serum/serum-dex crank --locked --tag v0.4.0
 ```
 
 Then run,
 
 ```bash
-make localnet
+yarn localnet
 ```
 
 ### Connect a GUI

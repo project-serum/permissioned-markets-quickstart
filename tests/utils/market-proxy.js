@@ -10,7 +10,7 @@ const {
   Logger,
   ReferralFees,
   MarketProxyBuilder,
-} = require("/home/armaniferrante/Documents/code/src/github.com/project-serum/serum-ts/packages/serum");
+} = require("@project-serum/serum");
 
 // Returns a client for the market proxy.
 //

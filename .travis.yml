@@ -1,0 +1,28 @@
+dist: bionic
+language: rust
+rust:
+  - stable
+env:
+  global:
+    - NODE_VERSION="v14.7.0"
+    - SOLANA_VERSION="v1.7.8"
+git:
+  submodules: true
+
+_defaults: &defaults
+  before_install:
+  - nvm install $NODE_VERSION
+  - sudo apt-get install -y pkg-config build-essential libudev-dev
+  - sh -c "$(curl -sSfL https://release.solana.com/${SOLANA_VERSION}/install)"
+  - export PATH="/home/travis/.local/share/solana/install/active_release/bin:$PATH"
+  - export NODE_PATH="/home/travis/.nvm/versions/node/${NODE_VERSION}/lib/node_modules/:${NODE_PATH}"
+  - yes | solana-keygen new
+  - yarn
+
+jobs:
+  include:
+    - <<: *defaults
+      name: Builds and runs the tests
+      script:
+        - yarn build
+        - yarn test

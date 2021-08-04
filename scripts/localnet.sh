@@ -26,7 +26,7 @@ PAYER_FILEPATH="$HOME/.config/solana/id.json"
 #
 CRANK=$(which crank)
 if [ $? -ne 0 ]; then
-		CRANK="/home/armaniferrante/Documents/code/src/github.com/project-serum/permissioned-markets-quickstart/deps/serum-dex/target/debug/crank"
+		CRANK="<your-crank-path-here>"
 fi
 
 LOG_DIR="./localnet-logs"
