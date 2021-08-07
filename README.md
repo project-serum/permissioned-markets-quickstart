@@ -25,19 +25,19 @@ git submodules.
 
 Pull the source
 
-```
+```bash
 git submodule init
 git submodule update
 ```
 
 ### Install Dependencies
 
-[Anchor](https://github.com/project-serum/anchor) is used for developoment, and it's
+[Anchor](https://github.com/project-serum/anchor) is used for development, and it's
 recommended workflow is used here. To get started, see the [guide](https://project-serum.github.io/anchor/getting-started/introduction.html).
 
 To install Anchor and all local dependencies, run
 
-```
+```bash
 yarn
 ```
 
@@ -45,8 +45,7 @@ yarn
 
 To build, run
 
-
-```
+```bash
 yarn build
 ```
 
@@ -64,7 +63,7 @@ yarn test
 To start a localnetwork with both the dex and proxy deployed and an orderbook
 listed with posted orders, first install the "crank" cli.
 
-```
+```bash
 cargo install --git https://github.com/project-serum/serum-dex crank --locked --tag v0.4.0
 ```
 
@@ -109,4 +108,4 @@ identical abstraction is provided in the JavaScript [client](https://github.com/
 
 Note that this middleware abstraction is not required to host a
 permissioned market. One could write a regular program that manages the PDAs
-and CPI invocations onesself.
+and CPI invocations oneself.
