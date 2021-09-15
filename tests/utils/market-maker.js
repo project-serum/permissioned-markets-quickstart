@@ -80,7 +80,13 @@ async function initOpenOrders(provider, marketProxy, marketMakerAccounts) {
     )
   );
   let signers = [marketMakerAccounts.account];
-  await provider.send(tx, signers);
+  try {
+    await provider.send(tx, signers);
+  }
+  catch (e) {
+    console.log("failed to generate OOA");
+    throw e;
+  }
 }
 
 async function postOrders(provider, marketProxy, marketMakerAccounts) {

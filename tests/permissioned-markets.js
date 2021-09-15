@@ -191,7 +191,7 @@ describe("permissioned-markets", () => {
 
   // Need to crank the cancel so that we can close later.
   it("Cranks the cancel transaction", async () => {
-    await crankEventQueue(provider, marketProxy);
+    await crankEventQueuePermissioned(provider, marketProxy);
   });
 
   it("Closes an open orders account", async () => {
@@ -304,7 +304,7 @@ describe("permissioned-markets", () => {
   });
 
   it("Cranks the prune transaction", async () => {
-    await crankEventQueue(provider, marketProxy);
+    await crankEventQueuePermissioned(provider, marketProxy);
   });
 
   it("Closes an open orders account", async () => {
@@ -344,6 +344,20 @@ async function crankEventQueue(provider, marketProxy) {
     const tx = new Transaction();
     tx.add(
       marketProxy.market.makeConsumeEventsInstruction([eq[0].openOrders], 1)
+    );
+    await provider.send(tx);
+    eq = await marketProxy.market.loadEventQueue(provider.connection);
+  }
+}
+
+async function crankEventQueuePermissioned(provider, marketProxy) {
+  // TODO: can do this in a single transaction if we covert the pubkey bytes
+  //       into a [u64; 4] array and sort. I'm lazy though.
+  let eq = await marketProxy.market.loadEventQueue(provider.connection);
+  while (eq.length > 0) {
+    const tx = new Transaction();
+    tx.add(
+      marketProxy.market.makeConsumeEventsPermissionedInstruction([eq[0].openOrders], provider.wallet.publicKey, 1)
     );
     await provider.send(tx);
     eq = await marketProxy.market.loadEventQueue(provider.connection);

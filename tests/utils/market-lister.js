@@ -136,6 +136,7 @@ async function list({
         DEX_PID,
         proxyProgramId
       ),
+      consumeEventsAuthority: wallet.publicKey,
     })
   );
 
